@@ -54,7 +54,7 @@ struct TablesResponse {
 impl Settings {
     fn new() -> Result<Self, ConfigError> {
         let settings = Config::builder()
-            .add_source(File::with_name("/Users/n/RustroverProjects/rau/config"))
+            .add_source(File::with_name("/Users/n/RustroverProjects/rau/config.toml"))
             .add_source(Environment::with_prefix("AIRTABLE"))
             .build()?;
         settings.try_deserialize()
@@ -197,7 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Output the 100 most recent record IDs and their names
         let client = Client::new();
         let update_record_url = format!("https://api.airtable.com/v0/{}/{}", table_config.base_id, table_config.table_name);
-        let query_url = format!("{}/?maxRecords=100&view=Grid%20view", update_record_url);
+        let query_url = format!("{}/?maxRecords=100", update_record_url);
 
         // Make the API request
         let query_resp = client
