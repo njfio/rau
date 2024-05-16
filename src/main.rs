@@ -3,12 +3,10 @@ use config::{Config, ConfigError, Environment, File};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
-use log::debug;
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Record {
@@ -243,7 +241,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if status.is_success() {
                 let record: Record = serde_json::from_str(&text)?;
                 for (field, value) in record.fields.as_object().unwrap() {
-                    println!("{}: {}", field, value);
+                    eprint!("{}: ", field);
+                    println!("{}", value);
                 }
             } else {
                 eprintln!("Failed to query record. Status: {}, Response: {}", status, text);
@@ -294,7 +293,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let text = update_resp.text().await?;
 
                 if status.is_success() {
-                    let updated_records: RecordsResponse = serde_json::from_str(&text)?;
+                    let _updated_records: RecordsResponse = serde_json::from_str(&text)?;
                     println!("Updated Record");
                 } else {
                     eprintln!("Failed to update record. Status: {}, Response: {}", status, text);
@@ -317,7 +316,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let record: Record = serde_json::from_str(&text)?;
                     for field in fields {
                         if let Some(value) = record.fields.get(field) {
-                            println!("{}: {}", field, value);
+                            eprint!("{}: ", field);
+                            println!("{}",value);
                         } else {
                             println!("{}: <no value>", field);
                         }
@@ -364,61 +364,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-fn main_autocomplete() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let config = Settings::new().unwrap();
-
-    // Create CLI interface for autocomplete
-    let matches = Command::new("Airtable CLI Autocomplete")
-        .version("1.0")
-        .about("Autocomplete for Airtable CLI")
-        .arg(
-            Arg::new("config")
-                .help("The name of the configuration to use")
-                .required(true)
-                .index(1),
-        )
-        .get_matches();
-
-    let config_name = matches.get_one::<String>("config").expect("Configuration name is required");
-
-    // Get the table configuration from the config
-    let table_config = config.tables.get(config_name).expect("Configuration not found in config");
-
-    rt.block_on(cache_available_fields(&config.api_key, &table_config.base_id, &table_config.table_name, "available_fields_cache.json")).unwrap();
-
-    let available_fields = read_cached_fields("available_fields_cache.json").unwrap();
-
-    let mut rl = Editor::<()>::new();
-
-    loop {
-        let readline = rl.readline(">> ");
-        match readline {
-            Ok(line) => {
-                let input: Vec<&str> = line.split('=').collect();
-                if input.len() == 2 {
-                    let field = input[0];
-                    if available_fields.iter().any(|f| f.name == field) {
-                        println!("Field: {} Value: {}", field, input[1]);
-                    } else {
-                        println!("Unknown field: {}", field);
-                    }
-                } else {
-                    println!("Invalid input. Use format key=value");
-                }
-            }
-            Err(ReadlineError::Interrupted) => {
-                break;
-            }
-            Err(ReadlineError::Eof) => {
-                break;
-            }
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
-            }
-        }
-    }
 }
