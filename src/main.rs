@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command};
-use config::{Config, ConfigError, File};
+use config::{Config, ConfigError, Environment, File};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
@@ -54,7 +54,8 @@ struct TablesResponse {
 impl Settings {
     fn new() -> Result<Self, ConfigError> {
         let settings = Config::builder()
-            .add_source(File::with_name("/Users/n/RustroverProjects/airtable_api/config"))
+            .add_source(File::with_name("/Users/n/RustroverProjects/rau/config"))
+            .add_source(Environment::with_prefix("AIRTABLE"))
             .build()?;
         settings.try_deserialize()
     }
@@ -94,21 +95,6 @@ fn read_cached_fields(cache_file: &str) -> io::Result<Vec<Field>> {
     Ok(fields)
 }
 
-async fn fetch_recent_records(api_key: &str, base_id: &str, table_name: &str) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
-    let client = Client::new();
-    let url = format!("https://api.airtable.com/v0/{}/{}/?maxRecords=100", base_id, table_name);
-    eprintln!("url: {}", url);
-    let resp: RecordsResponse = client
-        .get(&url)
-        .bearer_auth(api_key)
-        .send()
-        .await?
-        .json()
-        .await?;
-
-    Ok(resp.records)
-}
-
 // Helper function to parse JSON strings into JSON objects
 fn parse_json_string(value: &str) -> serde_json::Value {
     serde_json::from_str(value).unwrap_or_else(|_| json!(value))
@@ -118,6 +104,7 @@ fn parse_json_string(value: &str) -> serde_json::Value {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load configuration
     let config = Settings::new()?;
+    let api_key = &config.api_key;
 
     // Create CLI interface
     let matches = Command::new("Airtable CLI")
@@ -149,8 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .long("schema")
                 .action(ArgAction::SetTrue)
                 .help("Output the schema")
-                .conflicts_with("fields_flag")
-                .conflicts_with("recent"),
+                .conflicts_with("fields_flag"),
         )
         .arg(
             Arg::new("fields_flag")
@@ -158,17 +144,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .long("fields")
                 .action(ArgAction::SetTrue)
                 .help("Output the fields")
-                .conflicts_with("schema")
-                .conflicts_with("recent"),
+                .conflicts_with("schema"),
         )
         .arg(
             Arg::new("recent")
                 .short('r')
                 .long("recent")
                 .action(ArgAction::SetTrue)
-                .help("Output the 100 most recent records")
-                .conflicts_with("schema")
-                .conflicts_with("fields_flag"),
+                .help("Output the 100 most recent record IDs and their names"),
         )
         .get_matches();
 
@@ -184,7 +167,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Cache available fields to a local file
     let cache_file = "available_fields_cache.json";
-    cache_available_fields(&config.api_key, &table_config.base_id, &table_config.table_name, cache_file).await?;
+    cache_available_fields(&api_key, &table_config.base_id, &table_config.table_name, cache_file).await?;
 
     // Read available fields from cache
     let available_fields = read_cached_fields(cache_file)?;
@@ -211,13 +194,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if output_recent {
-        // Output the 100 most recent records
-        let recent_records = fetch_recent_records(&config.api_key, &table_config.base_id, &table_config.table_name).await?;
-        let default_name = Value::String("<no name>".to_string());
-        for record in recent_records {
-            let name = record.fields.get("Name").unwrap_or(&default_name);
-            println!("ID: {}, Name: {}", record.id, name);
+        // Output the 100 most recent record IDs and their names
+        let client = Client::new();
+        let update_record_url = format!("https://api.airtable.com/v0/{}/{}", table_config.base_id, table_config.table_name);
+        let query_url = format!("{}/?maxRecords=100&view=Grid%20view", update_record_url);
+
+        // Make the API request
+        let query_resp = client
+            .get(&query_url)
+            .bearer_auth(&api_key)
+            .send()
+            .await?;
+
+        let status = query_resp.status();
+        let text = query_resp.text().await?;
+
+        if status.is_success() {
+            let records_response: RecordsResponse = serde_json::from_str(&text)?;
+            for record in records_response.records {
+                let name = record.fields.get("Name").and_then(|v| v.as_str()).unwrap_or("<no name>").to_string();
+                println!("ID: {}, Name: {}", record.id, name);
+            }
+        } else {
+            eprintln!("Failed to query recent records. Status: {}, Response: {}", status, text);
         }
+
         return Ok(());
     }
 
@@ -232,7 +233,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Make the API request
             let query_resp = client
                 .get(&query_record_url)
-                .bearer_auth(&config.api_key)
+                .bearer_auth(&api_key)
                 .send()
                 .await?;
 
@@ -283,7 +284,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Make the API request
                 let update_resp = client
                     .patch(&update_record_url)
-                    .bearer_auth(&config.api_key)
+                    .bearer_auth(&api_key)
                     .header("Content-Type", "application/json")
                     .json(&update_data)
                     .send()
@@ -305,7 +306,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Make the API request
                 let query_resp = client
                     .get(&query_record_url)
-                    .bearer_auth(&config.api_key)
+                    .bearer_auth(&api_key)
                     .send()
                     .await?;
 
@@ -340,7 +341,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Make the API request
         let create_resp = client
             .post(&update_record_url)
-            .bearer_auth(&config.api_key)
+            .bearer_auth(&api_key)
             .header("Content-Type", "application/json")
             .json(&create_data)
             .send()
