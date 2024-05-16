@@ -19,7 +19,7 @@ A command-line utility written in Rust to interact with the Airtable API, enabli
 1. **Install Rust:** If you don't have Rust installed, download and install it from [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install).
 2. **Clone the Repository:**
    ```bash
-   git clone https://github.com/yourusername/rau.git
+   git clone https://github.com/njfio/rau.git
    ```
 3. **Navigate to the Project Directory:**
    ```bash
