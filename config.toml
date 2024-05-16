@@ -1,0 +1,6 @@
+api_key = "patmc99hhWbf9BJOF.d72970f623d84b74ba980414ddb7d4ec0f15a676a026665076c0f1f059e30451"
+
+[tables]
+tweets = {   base_id = "appEo7LBNoYQRwEc0",   table_name = "Table1" }
+pokemons = { base_id = "app2jJgrXCQirseg5", table_name = "Pokemon" }
+prompts = {  base_id = "appzdA0NkqZ7JYMeP",  table_name = "Prompt PreSet" }
