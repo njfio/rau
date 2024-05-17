@@ -90,9 +90,9 @@ jobs:
       - name: Run build
         run: cargo build --release --verbose --target $TARGET --manifest-path Cargo.toml
       - name: List contents of the repository
-        run: ls -lh rau/target
-      - name: List rau/target
-        run: find rau/target
+        run: ls -lh /target
+      - name: List /target
+        run: find /target
       - name: Compress
         run: |
           mkdir -p ./artifacts
