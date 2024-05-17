@@ -6,7 +6,7 @@ use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
-
+use std::env;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Record {
@@ -23,6 +23,13 @@ struct RecordsResponse {
 struct Settings {
     api_key: String,
     tables: HashMap<String, TableConfig>,
+    paths: PathsConfig,
+}
+
+#[derive(Debug, Deserialize)]
+struct PathsConfig {
+    config_file: String,
+    cache_file: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -51,8 +58,11 @@ struct TablesResponse {
 
 impl Settings {
     fn new() -> Result<Self, ConfigError> {
+        let main_config_path = env::var("RAU_CONFIG_PATH")
+            .unwrap_or_else(|_| "/path/to/default/main_config.toml".to_string());
+
         let settings = Config::builder()
-            .add_source(File::with_name("/Users/n/RustroverProjects/rau/config.toml"))
+            .add_source(File::with_name(&main_config_path))
             .add_source(Environment::with_prefix("AIRTABLE"))
             .build()?;
         settings.try_deserialize()
@@ -164,7 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let table_config = config.tables.get(config_name).expect("Configuration not found in config");
 
     // Cache available fields to a local file
-    let cache_file = "available_fields_cache.json";
+    let cache_file = &config.paths.cache_file;
     cache_available_fields(&api_key, &table_config.base_id, &table_config.table_name, cache_file).await?;
 
     // Read available fields from cache
@@ -317,7 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for field in fields {
                         if let Some(value) = record.fields.get(field) {
                             eprint!("{}: ", field);
-                            println!("{}",value);
+                            println!("{}", value);
                         } else {
                             println!("{}: <no value>", field);
                         }
