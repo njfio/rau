@@ -85,12 +85,10 @@ jobs:
         run: ls -la
       - name: Print current working directory
         run: pwd
-      - name: change path
-        run: cd rau/
       - name: List contents of the repository
         run: ls -la
       - name: Run build
-        run: cargo build --release --verbose --target $TARGET --manifest-path rau/Cargo.toml
+        run: cargo build --release --verbose --target $TARGET --manifest-path Cargo.toml
       - name: List contents of the repository
         run: ls -lh rau/target
       - name: List rau/target
