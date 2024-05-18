@@ -6,6 +6,7 @@ pokemons = { base_id = "app2jJgrXCQirseg5", table_name = "Pokemon" }
 act_as_prompts = {  base_id = "appRJZBZdoktzVWBM",  table_name = "🍿Act as Prompts" }
 ai_art_prompts = {  base_id = "appRJZBZdoktzVWBM",  table_name = "🎨AI Art Prompts" }
 content_creation_prompts = {  base_id = "appRJZBZdoktzVWBM",  table_name = "🎙️Content YouTube" }
+prompt_engineer = {  base_id = "appRJZBZdoktzVWBM",  table_name = "🤖Prompt Engineer" }
 
 
 [settings]
