@@ -81,12 +81,6 @@ jobs:
           EOF
       - name: Install rust target
         run: rustup target add $TARGET
-      - name: List contents of the repository
-        run: ls -la
-      - name: Print current working directory
-        run: pwd
-      - name: List contents of the repository
-        run: ls -la
       - name: Run build
         run: cargo build --release --verbose --target $TARGET --manifest-path Cargo.toml
       - name: List contents of the repository
