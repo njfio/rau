@@ -1,4 +1,3 @@
-```markdown
 # Rust Airtable Utility (RAU)
 
 A command-line utility written in Rust to interact with the Airtable API, enabling you to query, create, and update records.
@@ -106,4 +105,4 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 ## License
 
 This project is licensed under the MIT License.
-```
+
