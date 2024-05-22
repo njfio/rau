@@ -1,6 +1,10 @@
 # Rust Airtable Utility (RAU)
+[![GitBook](https://img.shields.io/badge/GitBook-Read%20Docs-blue)](https://njf.gitbook.io/rust-airtable-utility-rau/)
+
 
 A command-line utility written in Rust to interact with the Airtable API, enabling you to query, create, and update records.
+
+
 
 ## Features
 
